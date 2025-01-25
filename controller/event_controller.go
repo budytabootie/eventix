@@ -19,6 +19,15 @@ func NewEventController(eventService service.EventService) *EventController {
 	}
 }
 
+
+// GetAllEvents godoc
+// @Summary Get all events
+// @Description Retrieve a list of all events (accessible by Users)
+// @Tags Events
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /events [get]
 func (ctrl *EventController) GetAllEvents(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
@@ -45,6 +54,17 @@ func (ctrl *EventController) GetEventByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Event retrieved successfully", "data": event})
 }
 
+// CreateEvent godoc
+// @Summary Create a new event
+// @Description Admin can create a new event
+// @Tags Events
+// @Accept json
+// @Produce json
+// @Param event body entity.Event true "Event details"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Router /admin/events [post]
 func (ctrl *EventController) CreateEvent(c *gin.Context) {
 	var event entity.Event
 	if err := c.ShouldBindJSON(&event); err != nil {

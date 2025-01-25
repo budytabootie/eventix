@@ -14,6 +14,9 @@ RUN go mod download
 # Menyalin seluruh kode sumber ke dalam container
 COPY . .
 
+# Generate Swagger docs
+RUN go install github.com/swaggo/swag/cmd/swag@latest && swag init
+
 # Membangun aplikasi
 RUN go build -o main .
 
@@ -29,6 +32,9 @@ RUN apk add --no-cache tzdata
 
 # Menyalin executable
 COPY --from=builder /app/main .
+
+# Menyalin folder Swagger docs
+COPY --from=builder /app/docs ./docs
 
 # Menyalin file .env ke image
 COPY --from=builder /app/.env .

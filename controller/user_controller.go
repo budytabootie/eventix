@@ -17,6 +17,16 @@ func NewUserController(userService service.UserService) *UserController {
     return &UserController{service: userService}
 }
 
+// RegisterUser godoc
+// @Summary Register a new user
+// @Description Create a new user account
+// @Tags User Management
+// @Accept json
+// @Produce json
+// @Param user body entity.User true "User data"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /users/register [post]
 func (ctrl *UserController) RegisterUser(c *gin.Context) {
     var user entity.User
     if err := c.ShouldBindJSON(&user); err != nil {
@@ -31,6 +41,15 @@ func (ctrl *UserController) RegisterUser(c *gin.Context) {
     c.JSON(http.StatusCreated, gin.H{"status": "success", "message": "User registered successfully", "data": createdUser})
 }
 
+// GetUserByID godoc
+// @Summary Get user by ID
+// @Description Retrieve user details by ID
+// @Tags User Management
+// @Produce json
+// @Param id path uint true "User ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /users/{id} [get]
 func (ctrl *UserController) GetUserByID(c *gin.Context) {
     id, err := strconv.Atoi(c.Param("id"))
     if err != nil {
@@ -45,6 +64,17 @@ func (ctrl *UserController) GetUserByID(c *gin.Context) {
     c.JSON(http.StatusOK, gin.H{"status": "success", "message": "User retrieved successfully", "data": user})
 }
 
+// UpdateUserRole godoc
+// @Summary Update user role
+// @Description Update role of a specific user (Admin only)
+// @Tags User Management
+// @Accept json
+// @Produce json
+// @Param id path uint true "User ID"
+// @Param role body map[string]string true "Role data"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /users/{id}/role [put]
 func (ctrl *UserController) UpdateUserRole(c *gin.Context) {
     id, err := strconv.ParseUint(c.Param("id"), 10, 32)
     if err != nil {
@@ -71,24 +101,3 @@ func (ctrl *UserController) UpdateUserRole(c *gin.Context) {
 
     c.JSON(http.StatusOK, gin.H{"status": "success", "message": "User role updated successfully", "data": nil})
 }
-
-
-func (ctrl *UserController) Login(c *gin.Context) {
-    var loginData struct {
-        Username string `json:"username" binding:"required"`
-        Password string `json:"password" binding:"required"`
-    }
-    if err := c.ShouldBindJSON(&loginData); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid login data", "data": nil})
-        return
-    }
-
-    token, err := ctrl.service.Login(loginData.Username, loginData.Password)
-    if err != nil {
-        c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": err.Error(), "data": nil})
-        return
-    }
-
-    c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Login successful", "data": gin.H{"token": token}})
-}
-

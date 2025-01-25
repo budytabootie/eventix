@@ -19,6 +19,15 @@ func NewTicketController(ticketService service.TicketService) *TicketController 
 	}
 }
 
+
+// GetTickets godoc
+// @Summary Get user tickets
+// @Description Retrieve tickets owned by the logged-in user
+// @Tags Tickets
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /tickets [get]
 func (ctrl *TicketController) GetTickets(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -35,6 +44,18 @@ func (ctrl *TicketController) GetTickets(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Tickets retrieved successfully", "data": tickets})
 }
 
+
+// CreateTicket godoc
+// @Summary Purchase a ticket
+// @Description User can purchase tickets for an event
+// @Tags Tickets
+// @Accept json
+// @Produce json
+// @Param ticket body entity.Ticket true "Ticket details"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /tickets [post]
 func (ctrl *TicketController) CreateTicket(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {

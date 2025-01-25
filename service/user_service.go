@@ -5,7 +5,6 @@ import (
 	"eventix/entity"
 	"eventix/repository"
 	"golang.org/x/crypto/bcrypt"
-	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -14,7 +13,6 @@ type UserService interface {
 	RegisterUser(user entity.User) (entity.User, error)
 	GetUserByID(id uint) (entity.User, error)
     UpdateUserRole(userID uint, role string) error
-	Login(username, password string) (string, error)
 }
 
 type JWTClaims struct {
@@ -65,32 +63,4 @@ func (s *userService) UpdateUserRole(userID uint, role string) error {
 }
 
 
-func (s *userService) Login(username, password string) (string, error) {
-    user, err := s.repo.GetUserByUsername(username)
-    if err != nil {
-        return "", err
-    }
 
-    // Verifikasi password
-    if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return "", errors.New("invalid username or password")
-	}
-
-	// Generate JWT
-	claims := JWTClaims{
-		UserID: user.ID,
-		Role:   user.Role,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)), // Token berlaku 24 jam
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	secretKey := "your_secret_key" // Ganti dengan key rahasia Anda
-	signedToken, err := token.SignedString([]byte(secretKey))
-	if err != nil {
-		return "", err
-	}
-
-	return signedToken, nil
-}

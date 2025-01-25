@@ -3,6 +3,7 @@ package main
 import (
 	"eventix/config"
 	"eventix/controller"
+	_ "eventix/docs" // Import Swagger docs
 	"eventix/middleware"
 	"eventix/repository"
 	"eventix/service"
@@ -10,6 +11,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
@@ -41,7 +44,7 @@ func main() {
 	reportController := controller.NewReportController(reportService)
 
 	blacklistRepo := repository.NewTokenBlacklistRepository(db)
-	authService := service.NewAuthService(blacklistRepo)
+	authService := service.NewAuthService(userRepo, blacklistRepo)
 	authController := controller.NewAuthController(authService)
 
 	exportController := controller.NewExportController(reportService)
@@ -49,14 +52,17 @@ func main() {
 	// Setup Router
 	r := gin.Default()
 
+	// Rute Swagger
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// Route publik tanpa middleware
 	r.POST("/users/register", userController.RegisterUser)
-	r.POST("/login", userController.Login)
 
 	// Middleware untuk autentikasi
 	r.Use(middleware.AuthenticationMiddleware("your_secret_key"))
 
 	// Route untuk logout
+	r.POST("/login", authController.Login)
 	r.POST("/logout", authController.Logout)
 
 	// Routes untuk pengguna umum (User)
