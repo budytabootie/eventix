@@ -8,15 +8,17 @@ import (
 
 type TicketService interface {
     GetAllTickets(page int, size int) ([]entity.Ticket, error)
-    GetTicketsByUserID(userID uint) ([]entity.Ticket, error)
+    GetTicketsByUserID(userID uint, page int, size int) ([]entity.Ticket, int64, error) // Perbaikan di sini
     GetTicketByID(id uint) (entity.Ticket, error)
     CreateTicket(ticket entity.Ticket) (entity.Ticket, error)
-    UpdateTicket(ticket entity.Ticket) (entity.Ticket, error) // Tambahkan metode ini
+    UpdateTicket(ticket entity.Ticket) (entity.Ticket, error)
     CancelTicket(ticketID uint) error
     UpdateTicketStatus(id uint, status string) error
     SearchTickets(status string) ([]entity.Ticket, error)
     GetPaginatedTickets(page int, size int) ([]entity.Ticket, error)
+	SearchAndFilterTickets(filters map[string]interface{}, page int, size int) (map[string]interface{}, error)
 }
+
 
 
 type ticketService struct {
@@ -32,9 +34,10 @@ func (s *ticketService) GetAllTickets(page int, size int) ([]entity.Ticket, erro
 	return s.repo.GetAllTickets(page, size)
 }
 
-func (s *ticketService) GetTicketsByUserID(userID uint) ([]entity.Ticket, error) {
-	return s.repo.GetTicketsByUserID(userID)
+func (s *ticketService) GetTicketsByUserID(userID uint, page int, size int) ([]entity.Ticket, int64, error) {
+    return s.repo.GetTicketsByUserID(userID, page, size)
 }
+
 
 func (s *ticketService) GetTicketByID(id uint) (entity.Ticket, error) {
 	return s.repo.GetTicketByID(id)
@@ -135,3 +138,16 @@ func (s *ticketService) UpdateTicket(ticket entity.Ticket) (entity.Ticket, error
     return updatedTicket, nil
 }
 
+func (s *ticketService) SearchAndFilterTickets(filters map[string]interface{}, page int, size int) (map[string]interface{}, error) {
+    tickets, totalItems, err := s.repo.SearchAndFilterTickets(filters, page, size)
+    if err != nil {
+        return nil, err
+    }
+
+    return map[string]interface{}{
+        "tickets":      tickets,
+        "total_items":  totalItems,
+        "current_page": page,
+        "page_size":    size,
+    }, nil
+}

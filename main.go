@@ -57,12 +57,12 @@ func main() {
 
 	// Route publik tanpa middleware
 	r.POST("/users/register", userController.RegisterUser)
+	r.POST("/login", authController.Login)
 
 	// Middleware untuk autentikasi
 	r.Use(middleware.AuthenticationMiddleware("your_secret_key"))
 
 	// Route untuk logout
-	r.POST("/login", authController.Login)
 	r.POST("/logout", authController.Logout)
 
 	// Routes untuk pengguna umum (User)

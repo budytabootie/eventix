@@ -18,7 +18,11 @@ func NewExportController(reportService service.ReportService) *ExportController 
 }
 
 func (ctrl *ExportController) ExportSummaryReport(c *gin.Context) {
-    report, err := ctrl.reportService.GetSummaryReport()
+    // Tambahkan nilai default untuk pagination
+    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+    size, _ := strconv.Atoi(c.DefaultQuery("size", "100"))
+
+    report, err := ctrl.reportService.GetSummaryReport(page, size)
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to generate summary report"})
         return
@@ -35,7 +39,7 @@ func (ctrl *ExportController) ExportSummaryReport(c *gin.Context) {
 
     // Data CSV
     writer.Write([]string{
-        strconv.FormatInt(report["total_tickets_sold"].(int64), 10),
+        strconv.FormatInt(report["total_items"].(int64), 10),
         strconv.FormatFloat(report["total_revenue"].(float64), 'f', 2, 64),
     })
 }
@@ -47,7 +51,11 @@ func (ctrl *ExportController) ExportEventReport(c *gin.Context) {
         return
     }
 
-    report, err := ctrl.reportService.GetEventReport(uint(id))
+    // Tambahkan nilai default untuk pagination
+    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+    size, _ := strconv.Atoi(c.DefaultQuery("size", "100"))
+
+    report, err := ctrl.reportService.GetEventReport(uint(id), page, size)
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to generate event report"})
         return
@@ -64,7 +72,7 @@ func (ctrl *ExportController) ExportEventReport(c *gin.Context) {
 
     // Data CSV
     writer.Write([]string{
-        strconv.FormatInt(report["total_tickets_sold"].(int64), 10),
+        strconv.FormatInt(report["total_items"].(int64), 10),
         strconv.FormatFloat(report["total_revenue"].(float64), 'f', 2, 64),
     })
 }

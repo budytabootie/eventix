@@ -5,9 +5,10 @@ import (
 )
 
 type ReportService interface {
-	GetSummaryReport() (map[string]interface{}, error)
-	GetEventReport(eventID uint) (map[string]interface{}, error)
+	GetSummaryReport(page int, size int) (map[string]interface{}, error) // Update untuk mendukung pagination
+	GetEventReport(eventID uint, page int, size int) (map[string]interface{}, error) // Update untuk mendukung pagination
 }
+
 
 type reportService struct {
 	ticketRepo repository.TicketRepository
@@ -19,26 +20,31 @@ func NewReportService(ticketRepo repository.TicketRepository) ReportService {
 	}
 }
 
-func (s *reportService) GetEventReport(eventID uint) (map[string]interface{}, error) {
-	totalTickets, totalRevenue, err := s.ticketRepo.GetEventReport(eventID)
+func (s *reportService) GetEventReport(eventID uint, page int, size int) (map[string]interface{}, error) {
+	tickets, totalItems, err := s.ticketRepo.GetEventReport(eventID, page, size)
 	if err != nil {
 		return nil, err
 	}
 
 	return map[string]interface{}{
-		"total_tickets_sold": totalTickets,
-		"total_revenue":      totalRevenue,
+		"tickets":      tickets,
+		"total_items":  totalItems,
+		"current_page": page,
+		"page_size":    size,
 	}, nil
 }
 
-func (s *reportService) GetSummaryReport() (map[string]interface{}, error) {
-	totalTickets, totalRevenue, err := s.ticketRepo.GetSummaryReport()
+
+func (s *reportService) GetSummaryReport(page int, size int) (map[string]interface{}, error) {
+	tickets, totalItems, err := s.ticketRepo.GetSummaryReport(page, size)
 	if err != nil {
 		return nil, err
 	}
 
 	return map[string]interface{}{
-		"total_tickets_sold": totalTickets,
-		"total_revenue":      totalRevenue,
+		"tickets":      tickets,
+		"total_items":  totalItems,
+		"current_page": page,
+		"page_size":    size,
 	}, nil
 }

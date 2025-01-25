@@ -28,32 +28,31 @@ func NewAuthService(userRepo repository.UserRepository, blacklistRepo repository
 
 // Login implements the authentication logic
 func (s *authService) Login(username, password string) (string, error) {
-	// Cari user berdasarkan username
-	user, err := s.userRepo.GetUserByUsername(username)
-	if err != nil {
-		return "", errors.New("invalid username or password")
-	}
+    user, err := s.userRepo.GetUserByUsername(username)
+    if err != nil {
+        return "", errors.New("invalid username or password")
+    }
 
-	// Verifikasi password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return "", errors.New("invalid username or password")
-	}
+    // Verifikasi password
+    if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+        return "", errors.New("invalid username or password")
+    }
 
-	// Generate JWT
-	claims := jwt.MapClaims{
-		"user_id": user.ID,
-		"role":    user.Role,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(), // Token berlaku 24 jam
-	}
+    // Generate JWT
+    claims := jwt.MapClaims{
+        "user_id": user.ID,
+        "role":    user.Role,
+        "exp":     time.Now().Add(time.Hour * 24).Unix(),
+    }
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	secretKey := "your_secret_key" // Ganti dengan key rahasia Anda
-	signedToken, err := token.SignedString([]byte(secretKey))
-	if err != nil {
-		return "", err
-	}
+    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+    secretKey := "your_secret_key"
+    signedToken, err := token.SignedString([]byte(secretKey))
+    if err != nil {
+        return "", err
+    }
 
-	return signedToken, nil
+    return signedToken, nil
 }
 
 // Logout implements the logic for blacklisting a token

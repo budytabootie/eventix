@@ -31,14 +31,32 @@ func NewEventController(eventService service.EventService) *EventController {
 func (ctrl *EventController) GetAllEvents(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+	name := c.Query("name")
+	status := c.Query("status")
 
-	events, err := ctrl.service.GetAllEvents(page, size)
+	events, totalItems, err := ctrl.service.GetAllEvents(page, size, name, status)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to retrieve events", "data": nil})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Events retrieved successfully", "data": events})
+
+	totalPages := (int(totalItems) + size - 1) / size
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"message": "Events retrieved successfully",
+		"data":   events,
+		"meta": map[string]interface{}{
+			"current_page": page,
+			"total_pages":  totalPages,
+			"total_items":  totalItems,
+			"limit":        size,
+		},
+	})
 }
+
+
+
 
 func (ctrl *EventController) GetEventByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -71,11 +89,13 @@ func (ctrl *EventController) CreateEvent(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid event data", "data": nil})
 		return
 	}
+
 	createdEvent, err := ctrl.service.CreateEvent(event)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": err.Error(), "data": nil})
 		return
 	}
+
 	c.JSON(http.StatusCreated, gin.H{"status": "success", "message": "Event created successfully", "data": createdEvent})
 }
 
@@ -114,3 +134,27 @@ func (ctrl *EventController) DeleteEvent(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Event deleted successfully", "data": nil})
 }
+
+func (ctrl *EventController) SearchAndFilterEvents(c *gin.Context) {
+	// Ambil parameter query untuk pencarian dan filter
+	filters := map[string]interface{}{
+		"name":       c.Query("name"),
+		"status":     c.Query("status"),
+		"start_date": c.Query("start_date"),
+		"end_date":   c.Query("end_date"),
+	}
+
+	// Ambil parameter pagination
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+
+	// Panggil service untuk mencari dan memfilter data
+	result, err := ctrl.service.SearchAndFilterEvents(filters, page, size)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error(), "data": nil})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Events retrieved successfully", "data": result})
+}
+

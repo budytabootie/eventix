@@ -7,18 +7,18 @@ import (
 
 type TicketRepository interface {
     GetAllTickets(page int, size int) ([]entity.Ticket, error)
-    GetTicketsByUserID(userID uint) ([]entity.Ticket, error) // Tambahkan metode ini
+    GetTicketsByUserID(userID uint, page int, size int) ([]entity.Ticket, int64, error)
     GetTicketByID(id uint) (entity.Ticket, error)
     CreateTicket(ticket entity.Ticket) (entity.Ticket, error)
     UpdateTicket(ticket entity.Ticket) (entity.Ticket, error)
     UpdateTicketStatus(id uint, status string) error
-    GetSummaryReport() (int64, float64, error)
-    GetEventReport(eventID uint) (int64, float64, error)
+    GetSummaryReport(page int, size int) ([]entity.Ticket, int64, error) // Update untuk mendukung pagination
+    GetEventReport(eventID uint, page int, size int) ([]entity.Ticket, int64, error) // Update untuk mendukung pagination
     SearchTickets(status string) ([]entity.Ticket, error)
     GetPaginatedTickets(page int, size int) ([]entity.Ticket, error)
     IsTicketSold(eventID uint) (bool, error)
+    SearchAndFilterTickets(filters map[string]interface{}, page int, size int) ([]entity.Ticket, int64, error) // Tambahkan metode ini
 }
-
 
 
 type ticketRepository struct {
@@ -70,50 +70,38 @@ func (r *ticketRepository) UpdateTicketStatus(id uint, status string) error {
     return result.Error
 }
 
-func (r *ticketRepository) GetEventReport(eventID uint) (int64, float64, error) {
-	var totalTickets int64
-	var totalRevenue float64
+func (r *ticketRepository) GetEventReport(eventID uint, page int, size int) ([]entity.Ticket, int64, error) {
+	var tickets []entity.Ticket
+	var totalItems int64
 
-	// Hitung jumlah tiket terjual berdasarkan event
-	err := r.db.Model(&entity.Ticket{}).
-		Where("event_id = ? AND status = ?", eventID, "purchased").
-		Count(&totalTickets).Error
-	if err != nil {
-		return 0, 0, err
+	offset := (page - 1) * size
+	query := r.db.Model(&entity.Ticket{}).Where("event_id = ? AND status = ?", eventID, "purchased")
+
+	// Hitung total tiket
+	if err := query.Count(&totalItems).Error; err != nil {
+		return nil, 0, err
 	}
 
-	// Hitung total pendapatan berdasarkan event
-	err = r.db.Model(&entity.Ticket{}).
-		Where("event_id = ? AND status = ?", eventID, "purchased").
-		Select("SUM(price)").Scan(&totalRevenue).Error
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return totalTickets, totalRevenue, nil
+	// Ambil data dengan pagination
+	result := query.Offset(offset).Limit(size).Find(&tickets)
+	return tickets, totalItems, result.Error
 }
 
-func (r *ticketRepository) GetSummaryReport() (int64, float64, error) {
-	var totalTickets int64
-	var totalRevenue float64
+func (r *ticketRepository) GetSummaryReport(page int, size int) ([]entity.Ticket, int64, error) {
+	var tickets []entity.Ticket
+	var totalItems int64
 
-	// Hitung jumlah tiket terjual
-	err := r.db.Model(&entity.Ticket{}).
-		Where("status = ?", "purchased").
-		Count(&totalTickets).Error
-	if err != nil {
-		return 0, 0, err
+	offset := (page - 1) * size
+	query := r.db.Model(&entity.Ticket{}).Where("status = ?", "purchased")
+
+	// Hitung total tiket
+	if err := query.Count(&totalItems).Error; err != nil {
+		return nil, 0, err
 	}
 
-	// Hitung total pendapatan
-	err = r.db.Model(&entity.Ticket{}).
-		Where("status = ?", "purchased").
-		Select("SUM(price)").Scan(&totalRevenue).Error
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return totalTickets, totalRevenue, nil
+	// Ambil data dengan pagination
+	result := query.Offset(offset).Limit(size).Find(&tickets)
+	return tickets, totalItems, result.Error
 }
 
 func (r *ticketRepository) SearchTickets(status string) ([]entity.Ticket, error) {
@@ -142,9 +130,48 @@ func (r *ticketRepository) IsTicketSold(eventID uint) (bool, error) {
     return count > 0, err
 }
 
-func (r *ticketRepository) GetTicketsByUserID(userID uint) ([]entity.Ticket, error) {
+func (r *ticketRepository) GetTicketsByUserID(userID uint, page int, size int) ([]entity.Ticket, int64, error) {
     var tickets []entity.Ticket
-    result := r.db.Where("user_id = ?", userID).Find(&tickets)
-    return tickets, result.Error
+    var totalItems int64
+
+    offset := (page - 1) * size
+    query := r.db.Model(&entity.Ticket{}).Where("user_id = ?", userID)
+
+    // Hitung total data sebelum pagination
+    if err := query.Count(&totalItems).Error; err != nil {
+        return nil, 0, err
+    }
+
+    // Pagination
+    result := query.Offset(offset).Limit(size).Find(&tickets)
+    return tickets, totalItems, result.Error
+}
+
+
+func (r *ticketRepository) SearchAndFilterTickets(filters map[string]interface{}, page int, size int) ([]entity.Ticket, int64, error) {
+    var tickets []entity.Ticket
+    var totalItems int64
+
+    offset := (page - 1) * size
+    query := r.db.Model(&entity.Ticket{})
+
+    // Filter berdasarkan event_id
+    if eventID, ok := filters["event_id"].(uint); ok && eventID > 0 {
+        query = query.Where("event_id = ?", eventID)
+    }
+
+    // Filter berdasarkan status
+    if status, ok := filters["status"].(string); ok && status != "" {
+        query = query.Where("status = ?", status)
+    }
+
+    // Hitung total data sebelum pagination
+    if err := query.Count(&totalItems).Error; err != nil {
+        return nil, 0, err
+    }
+
+    // Ambil data dengan pagination
+    result := query.Offset(offset).Limit(size).Find(&tickets)
+    return tickets, totalItems, result.Error
 }
 

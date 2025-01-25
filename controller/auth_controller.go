@@ -31,18 +31,24 @@ func (ctrl *AuthController) Login(c *gin.Context) {
         Username string `json:"username" binding:"required"`
         Password string `json:"password" binding:"required"`
     }
+
     if err := c.ShouldBindJSON(&loginData); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid login data", "data": nil})
+        c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Invalid login data"})
         return
     }
 
+    // Proses login
     token, err := ctrl.authService.Login(loginData.Username, loginData.Password)
     if err != nil {
-        c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": err.Error(), "data": nil})
+        c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": err.Error()})
         return
     }
 
-    c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Login successful", "data": gin.H{"token": token}})
+    c.JSON(http.StatusOK, gin.H{
+        "status":  "success",
+        "message": "Login successful",
+        "data":    gin.H{"token": token},
+    })
 }
 
 // Logout godoc

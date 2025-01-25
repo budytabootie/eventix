@@ -8,12 +8,13 @@ import (
 )
 
 type EventService interface {
-	GetAllEvents(page int, size int) ([]entity.Event, error)
-	GetEventByID(id uint) (entity.Event, error)
-	CreateEvent(event entity.Event) (entity.Event, error)
-	UpdateEvent(event entity.Event) (entity.Event, error)
-	DeleteEvent(id uint) error
-	SearchEvents(name string, startDate string, capacity int) ([]entity.Event, error)
+    GetAllEvents(page int, size int, name string, status string) ([]entity.Event, int64, error)
+    GetEventByID(id uint) (entity.Event, error)
+    CreateEvent(event entity.Event) (entity.Event, error)
+    UpdateEvent(event entity.Event) (entity.Event, error)
+    DeleteEvent(id uint) error
+    SearchEvents(name string, startDate string, capacity int) ([]entity.Event, error)
+    SearchAndFilterEvents(filters map[string]interface{}, page int, size int) (map[string]interface{}, error) // Tambahkan metode ini
 }
 
 type eventService struct {
@@ -28,9 +29,10 @@ func NewEventService(repo repository.EventRepository, ticketRepo repository.Tick
 	}
 }
 
-func (s *eventService) GetAllEvents(page int, size int) ([]entity.Event, error) {
-	return s.repo.GetAllEvents(page, size)
+func (s *eventService) GetAllEvents(page int, size int, name string, status string) ([]entity.Event, int64, error) {
+    return s.repo.GetAllEvents(page, size, name, status)
 }
+
 
 func (s *eventService) GetEventByID(id uint) (entity.Event, error) {
 	return s.repo.GetEventByID(id)
@@ -45,6 +47,15 @@ func (s *eventService) CreateEvent(event entity.Event) (entity.Event, error) {
 	// Validasi harga
 	if event.Price < 0 {
 		return entity.Event{}, errors.New("price must be greater than or equal to zero")
+	}
+
+	// Validasi status
+	if event.Status == "" {
+		event.Status = "active"
+	}
+
+	if event.Status != "active" && event.Status != "ongoing" && event.Status != "completed" {
+		return entity.Event{}, errors.New("invalid status value")
 	}
 
 	// Validasi nama unik
@@ -76,6 +87,13 @@ func (s *eventService) UpdateEvent(event entity.Event) (entity.Event, error) {
 	// Validasi harga
 	if event.Price < 0 {
 		return entity.Event{}, errors.New("price must be greater than or equal to zero")
+	}
+
+	// Validasi status
+	if event.Status != "" {
+		if event.Status != "active" && event.Status != "ongoing" && event.Status != "completed" {
+			return entity.Event{}, errors.New("invalid status value")
+		}
 	}
 
 	// Proses update event
@@ -131,3 +149,20 @@ func (s *eventService) CanDeleteEvent(eventID uint) error {
 	}
 	return nil
 }
+
+func (s *eventService) SearchAndFilterEvents(filters map[string]interface{}, page int, size int) (map[string]interface{}, error) {
+    events, totalItems, err := s.repo.SearchAndFilterEvents(filters, page, size)
+    if err != nil {
+        return nil, err
+    }
+
+    return map[string]interface{}{
+        "events":       events,
+        "total_items":  totalItems,
+        "current_page": page,
+        "page_size":    size,
+    }, nil
+}
+
+
+

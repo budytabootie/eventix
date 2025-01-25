@@ -29,19 +29,38 @@ func NewTicketController(ticketService service.TicketService) *TicketController 
 // @Failure 500 {object} map[string]interface{}
 // @Router /tickets [get]
 func (ctrl *TicketController) GetTickets(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": "Unauthorized"})
-		return
-	}
+    userID, exists := c.Get("user_id")
+    if !exists {
+        c.JSON(http.StatusUnauthorized, gin.H{"status": "error", "message": "Unauthorized"})
+        return
+    }
 
-	tickets, err := ctrl.service.GetTicketsByUserID(userID.(uint))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to retrieve tickets", "data": nil})
-		return
-	}
+    // Ambil parameter pagination dari query string
+    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+    size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
 
-	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Tickets retrieved successfully", "data": tickets})
+    // Panggil service untuk mendapatkan tiket dengan pagination
+    tickets, totalItems, err := ctrl.service.GetTicketsByUserID(userID.(uint), page, size)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to retrieve tickets", "data": nil})
+        return
+    }
+
+    // Hitung total halaman
+    totalPages := (int(totalItems) + size - 1) / size
+
+    // Response dengan metadata pagination
+    c.JSON(http.StatusOK, gin.H{
+        "status": "success",
+        "message": "Tickets retrieved successfully",
+        "data": tickets,
+        "meta": map[string]interface{}{
+            "current_page": page,
+            "total_pages":  totalPages,
+            "total_items":  totalItems,
+            "limit":        size,
+        },
+    })
 }
 
 
@@ -134,3 +153,23 @@ func (ctrl *TicketController) UpdateTicket(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Ticket updated successfully", "data": updatedTicket})
 }
 
+func (ctrl *TicketController) SearchAndFilterTickets(c *gin.Context) {
+    // Ambil parameter query untuk pencarian dan filter
+    filters := map[string]interface{}{
+        "event_id": c.Query("event_id"),
+        "status":   c.Query("status"),
+    }
+
+    // Ambil parameter pagination
+    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+    size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+
+    // Panggil service untuk mencari dan memfilter data
+    result, err := ctrl.service.SearchAndFilterTickets(filters, page, size)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error(), "data": nil})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Tickets retrieved successfully", "data": result})
+}

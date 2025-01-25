@@ -35,7 +35,11 @@ func (ctrl *ReportController) GetEventReport(c *gin.Context) {
 		return
 	}
 
-	report, err := ctrl.service.GetEventReport(uint(id))
+	// Ambil parameter pagination
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+
+	report, err := ctrl.service.GetEventReport(uint(id), page, size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error(), "data": nil})
 		return
@@ -53,7 +57,11 @@ func (ctrl *ReportController) GetEventReport(c *gin.Context) {
 // @Failure 403 {object} map[string]interface{}
 // @Router /admin/reports/summary [get]
 func (ctrl *ReportController) GetSummaryReport(c *gin.Context) {
-	report, err := ctrl.service.GetSummaryReport()
+	// Ambil parameter pagination
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+
+	report, err := ctrl.service.GetSummaryReport(page, size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": err.Error(), "data": nil})
 		return
