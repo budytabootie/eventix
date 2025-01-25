@@ -1,0 +1,23 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - "8080:8080"
+    environment:
+      - GIN_MODE=release
+      - DB_USER=user
+      - DB_PASS=password
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=eventixdb
+    networks:
+      - default
+
+networks:
+  default:
+    name: db_network
+    external: true
