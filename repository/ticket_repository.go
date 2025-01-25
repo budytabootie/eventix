@@ -70,38 +70,50 @@ func (r *ticketRepository) UpdateTicketStatus(id uint, status string) error {
     return result.Error
 }
 
-func (r *ticketRepository) GetSummaryReport() (int64, float64, error) {
-    var totalTickets int64
-    var totalRevenue float64
+func (r *ticketRepository) GetEventReport(eventID uint) (int64, float64, error) {
+	var totalTickets int64
+	var totalRevenue float64
 
-    // Hitung jumlah tiket terjual
-    if err := r.db.Model(&entity.Ticket{}).Where("status = ?", "sold").Count(&totalTickets).Error; err != nil {
-        return 0, 0, err
-    }
+	// Hitung jumlah tiket terjual berdasarkan event
+	err := r.db.Model(&entity.Ticket{}).
+		Where("event_id = ? AND status = ?", eventID, "purchased").
+		Count(&totalTickets).Error
+	if err != nil {
+		return 0, 0, err
+	}
 
-    // Hitung total pendapatan
-    if err := r.db.Model(&entity.Ticket{}).Where("status = ?", "sold").Select("SUM(price)").Scan(&totalRevenue).Error; err != nil {
-        return 0, 0, err
-    }
+	// Hitung total pendapatan berdasarkan event
+	err = r.db.Model(&entity.Ticket{}).
+		Where("event_id = ? AND status = ?", eventID, "purchased").
+		Select("SUM(price)").Scan(&totalRevenue).Error
+	if err != nil {
+		return 0, 0, err
+	}
 
-    return totalTickets, totalRevenue, nil
+	return totalTickets, totalRevenue, nil
 }
 
-func (r *ticketRepository) GetEventReport(eventID uint) (int64, float64, error) {
-    var totalTickets int64
-    var totalRevenue float64
+func (r *ticketRepository) GetSummaryReport() (int64, float64, error) {
+	var totalTickets int64
+	var totalRevenue float64
 
-    // Hitung jumlah tiket terjual berdasarkan event
-    if err := r.db.Model(&entity.Ticket{}).Where("event_id = ? AND status = ?", eventID, "sold").Count(&totalTickets).Error; err != nil {
-        return 0, 0, err
-    }
+	// Hitung jumlah tiket terjual
+	err := r.db.Model(&entity.Ticket{}).
+		Where("status = ?", "purchased").
+		Count(&totalTickets).Error
+	if err != nil {
+		return 0, 0, err
+	}
 
-    // Hitung total pendapatan berdasarkan event
-    if err := r.db.Model(&entity.Ticket{}).Where("event_id = ? AND status = ?", eventID, "sold").Select("SUM(price)").Scan(&totalRevenue).Error; err != nil {
-        return 0, 0, err
-    }
+	// Hitung total pendapatan
+	err = r.db.Model(&entity.Ticket{}).
+		Where("status = ?", "purchased").
+		Select("SUM(price)").Scan(&totalRevenue).Error
+	if err != nil {
+		return 0, 0, err
+	}
 
-    return totalTickets, totalRevenue, nil
+	return totalTickets, totalRevenue, nil
 }
 
 func (r *ticketRepository) SearchTickets(status string) ([]entity.Ticket, error) {

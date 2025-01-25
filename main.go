@@ -72,9 +72,9 @@ func main() {
 	adminRoutes.POST("/events", eventController.CreateEvent)
 	adminRoutes.PUT("/events/:id", eventController.UpdateEvent)
 	adminRoutes.DELETE("/events/:id", eventController.DeleteEvent)
-	adminRoutes.GET("/reports/sales", reportController.GetSalesReport)
 	adminRoutes.GET("/reports/summary", reportController.GetSummaryReport)
 	adminRoutes.GET("/reports/event/:id", reportController.GetEventReport)
+
 	adminRoutes.GET("/export/reports/summary", exportController.ExportSummaryReport)
 	adminRoutes.GET("/export/reports/event/:id", exportController.ExportEventReport)
 
